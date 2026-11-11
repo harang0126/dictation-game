@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="color-scheme" content="light dark">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>받아쓰기 게임</title>
+<style>
+:root{--bg:#faf7f2;--card:#fff;--text:#2b2620;--sub:#7a7165;--accent:#e8743b;--ok:#2e9e5b;--bad:#d64545;--line:#e6dfd3;--on:#fff;color-scheme:light dark;
+box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#1b1916;--card:#26231f;--text:#f1ece4;--sub:#a79e92;--accent:#f08a54;--ok:#4cc27f;--bad:#ef6a6a;--line:#3a352f;--on:#1b1916;color-scheme:dark}}
+:root[data-theme="dark"]{--on:#1b1916;color-scheme:dark;--bg:#1b1916;--card:#26231f;--text:#f1ece4;--sub:#a79e92;--accent:#f08a54;--ok:#4cc27f;--bad:#ef6a6a;--line:#3a352f}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bg);color:var(--text);font-family:-apple-system,"Apple SD Gothic Neo","Noto Sans KR","Malgun Gothic",sans-serif}
+.wrap{max-width:480px;margin:0 auto;padding:20px 16px 32px;word-break:keep-all;overflow-wrap:break-word}
+.card{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:22px 18px;text-align:center}
+h1{font-size:26px;margin:4px 0 10px}
+p{color:var(--sub);line-height:1.6;margin:6px 0}
+button{font:inherit;border:0;border-radius:12px;padding:13px 18px;background:var(--accent);color:var(--on);font-weight:700;font-size:16px;cursor:pointer}
+button.ghost{background:transparent;color:var(--accent);border:1.5px solid var(--accent)}
+button:disabled{opacity:.5}
+.hide{display:none}
+.top{display:flex;justify-content:space-between;color:var(--sub);font-size:14px;margin-bottom:10px}
+.timer{font-size:56px;font-weight:800;font-variant-numeric:tabular-nums;margin:6px 0}
+.timer.low{color:var(--bad)}
+.bar{height:10px;background:var(--line);border-radius:6px;overflow:hidden;margin-bottom:14px}
+.bar i{display:block;height:100%;width:100%;background:var(--accent);transition:width .1s linear}
+.bar i.low{background:var(--bad)}
+.blanks{letter-spacing:4px;color:var(--sub);margin:10px 0;font-size:18px;word-break:keep-all}
+.shown{font-size:20px;font-weight:700;margin:8px 0;min-height:30px}
+input{width:100%;font:inherit;font-size:18px;padding:13px;border-radius:12px;border:1.5px solid var(--line);background:var(--bg);color:var(--text);margin:10px 0;text-align:center}
+input:focus{outline:none;border-color:var(--accent)}
+input::placeholder{color:var(--sub);opacity:.8}
+.row{display:flex;gap:8px}.row button{flex:1}
+.fb{min-height:48px;margin-top:12px;font-weight:700}
+.fb.ok{color:var(--ok)}.fb.bad{color:var(--bad)}
+.score{font-size:52px;font-weight:800;color:var(--accent);margin:8px 0}
+.lv{display:flex;gap:8px;margin:14px 0 4px}
+.lv button{flex:1;background:transparent;color:var(--text);border:1.5px solid var(--line)}
+.lv button.on{background:var(--accent);color:var(--on);border-color:var(--accent)}
+#vc button{padding:11px 2px;font-size:14px}
+#lv button{padding:12px 2px;font-size:14px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div id="start" class="card">
+    <h1>✏️ 받아쓰기 게임</h1>
+    <p>문장을 듣고 그대로 받아 적어 보세요.<br>제한 시간은 <b>난이도별</b>로 달라요.<br>타이머는 입력을 시작하면 흘러가요.<br>대기 시간은 30초예요.</p>
+    <p>총 10문제 · 띄어쓰기도 맞춰야 정답!</p>
+    <div class="lv" id="lv"><button data-lv="easy">쉬움</button><button data-lv="normal" class="on">보통</button><button data-lv="hard">어려움</button><button data-lv="xhard">매우 어려움</button></div>
+    <p id="lvdesc">일상 문장 · 35초</p>
+    <div id="vcbox" class="hide"><p style="margin-top:14px">목소리</p>
+    <div class="lv" id="vc"><button data-v="female" class="on">여자</button><button data-v="male">남자</button><button data-v="child">어린이</button><button data-v="foreign">외국인</button></div>
+    <button class="ghost" id="prev" style="margin-top:8px">🔊 미리 듣기</button></div>
+    <button id="startBtn" style="margin-top:14px">시작하기</button>
+  </div>
+
+  <div id="game" class="hide">
+    <div class="top"><span id="qno">1 / 10</span><span id="sc">점수 0</span></div>
+    <div class="card">
+      <div class="timer" id="timer">20</div>
+      <div class="bar"><i id="barfill"></i></div>
+      <div class="shown" id="shown"></div>
+      <div class="blanks" id="blanks"></div>
+      <button class="ghost" id="replay">🔊 다시 듣기</button>
+      <input id="ans" type="text" placeholder="여기에 받아 적기" autocomplete="off" autocapitalize="off" spellcheck="false">
+      <div class="row"><button id="submit">제출</button></div>
+      <div class="fb" id="fb"></div>
+    </div>
+  </div>
+
+  <div id="end" class="card hide">
+    <h1>결과</h1>
+    <div class="score" id="final"></div>
+    <p id="msg"></p>
+    <button id="again" style="margin-top:14px">다시 하기</button>
+  </div>
+</div>
+
+<script>
+var POOL=["오늘은 날씨가 참 맑네요.","어제 친구와 도서관에 갔어요.","설거지를 끝내고 쉬었다.","왠지 오늘은 기분이 좋아요.","그 일은 굳이 하지 않아도 돼요.","할아버지께서 진지를 잡수신다.","아이가 낮잠을 자고 있어요.","바닷가에서 조개를 주웠다.","며칠 동안 비가 계속 내렸다.","몇 번을 읽어도 이해가 안 돼요."];
+var LEVELS={
+easy:["나는 사과를 먹어요.","강아지가 뛰어가요.","엄마와 시장에 갔어요.","하늘이 아주 파래요.","우리 집에 고양이가 있어요.","오늘은 학교에 가요.","나는 우유를 마셨어요.","꽃이 활짝 피었어요.","아빠가 책을 읽어요.","친구와 공원에서 놀았어요."],
+normal:POOL,
+hard:["금세 괜찮아질 거예요.","이 문제는 어떻게 해야 할지 몰랐어요.","나뭇잎이 바람에 흩날리고 있었다.","그 사람은 늘 웃음을 잃지 않았다.","오랫동안 기다린 보람이 있었다.","설렘과 걱정이 뒤섞인 하루였다.","벌써 가을이 성큼 다가왔구나.","읽고 나니 가슴이 먹먹해졌다.","제발 나한테 맡겨 주세요.","엄마가 김치찌개를 끓여 주셨어요."]};
+LEVELS.easy=LEVELS.easy.concat(["토끼가 풀을 먹어요.","나는 아침에 일어났어요.","비가 오면 우산을 써요.","동생이 노래를 불러요.","오늘은 기분이 좋아요.","할머니 댁에 놀러 갔어요.","나는 빵을 좋아해요.","별이 반짝반짝 빛나요.","언니와 함께 그림을 그려요.","저녁에 밥을 먹었어요."]);
+LEVELS.normal=LEVELS.normal.concat(["우리는 함께 소풍을 가기로 했다.","책상 위에 연필이 놓여 있어요.","그는 늘 일찍 일어나는 편이에요.","겨울 바다는 생각보다 고요했다.","동생에게 비밀을 말해 주었어요.","새로 산 신발이 발에 꼭 맞아요.","갑자기 소나기가 쏟아지기 시작했다.","친구에게 편지를 쓰기로 했어요.","저녁노을이 하늘을 붉게 물들였다.","냉장고에 우유가 하나도 없어요."]);
+LEVELS.hard=LEVELS.hard.concat(["그녀는 낯선 곳에서도 의연했다.","마음이 홀가분해지는 느낌이었다.","눈이 쌓여 길이 미끄러웠다.","사람들은 저마다 사연을 품고 산다.","오랜만에 만난 친구가 반가웠다.","이 책은 읽을수록 깊은 맛이 난다.","그는 말없이 고개를 끄덕였다.","도무지 영문을 알 수 없었다.","낙엽이 소복이 쌓인 길을 걸었다.","며칠째 몸이 나른하고 무겁다."]);
+LEVELS.easy=LEVELS.easy.concat(["나비가 꽃 위에 앉았어요.","아기가 방긋 웃어요.","나는 매일 이를 닦아요.","선생님께서 칭찬해 주셨어요.","바람이 시원하게 불어요.","우리 가족은 모두 네 명이에요.","나는 축구를 좋아해요.","눈이 하얗게 내려요.","물고기가 헤엄을 쳐요.","형이 자전거를 타요.","나는 노란 바나나를 먹었어요.","엄마가 맛있는 밥을 해 주셨어요.","새가 나무 위에서 노래해요.","나는 책가방을 멨어요.","오늘은 일요일이에요.","강아지와 산책을 나갔어요.","해가 환하게 떠올랐어요.","친구에게 인사를 했어요.","나는 그림 그리기를 좋아해요.","비 온 뒤에 무지개가 떴어요.","아빠와 함께 낚시를 갔어요.","동생이 장난감을 가지고 놀아요.","나는 밤에 일찍 잠들어요.","달이 둥글게 떴어요.","할아버지께 전화를 드렸어요.","우리 반은 모두 스무 명이에요.","나는 시금치를 잘 먹어요.","토요일에 놀이터에 갔어요.","누나가 피아노를 쳐요.","나는 따뜻한 물을 마셨어요."]);
+LEVELS.normal=LEVELS.normal.concat(["주말에는 가족과 함께 영화를 보러 갔다.","시험이 끝나서 마음이 가벼워졌어요.","그는 약속 시간에 늦지 않으려고 서둘렀다.","교실 창문 너머로 운동장이 보인다.","어머니께서 시장에서 과일을 사 오셨어요.","오늘따라 버스가 유난히 늦게 왔다.","새로 이사 온 이웃에게 인사를 건넸어요.","나는 방학 동안 책을 열 권 읽었다.","저 멀리서 기차 소리가 들려왔다.","친구의 생일 선물을 고르느라 한참 고민했어요.","아침마다 공원을 한 바퀴씩 걷는다.","그 식당은 음식이 정말 맛있어요.","길을 건널 때에는 좌우를 살펴야 해요.","그녀는 노래를 부르며 빨래를 널었다.","하늘에 구름이 두둥실 떠 있다.","오랜만에 가족사진을 찍었어요.","그는 컵에 물을 가득 따랐다.","도서관에서는 조용히 해야 한다.","꽃밭에 나비가 날아다니고 있어요.","나는 숙제를 마치고 나서 놀았다.","동네 빵집에서 갓 구운 빵 냄새가 난다.","일기장에 오늘 있었던 일을 적었다.","내일은 비가 올 것 같아요.","그 아이는 낯을 가리지 않고 잘 웃는다.","눈을 감으니 파도 소리가 더 크게 들렸다.","형은 방에서 조용히 책을 읽고 있어요.","점심시간에 친구들과 운동장에서 뛰어놀았다.","할머니께서 직접 담그신 김치가 제일 맛있어요.","아침 일찍 일어나 창문을 활짝 열었다.","저녁이 되자 거리에 불빛이 하나둘 켜졌다."]);
+LEVELS.hard=LEVELS.hard.concat(["그는 어렴풋이 지난 일을 떠올렸다.","일이 뜻대로 되지 않아 속상했다.","아무리 애써도 되돌릴 수 없는 일이었다.","그녀의 목소리는 한층 부드러워졌다.","낡은 책상 위에 먼지가 켜켜이 쌓여 있었다.","너무 놀라서 가슴이 두근거렸다.","그는 기어이 약속을 지키고야 말았다.","바람결에 은은한 꽃향기가 실려 왔다.","우리는 서로 마주 보며 환하게 웃었다.","그 일은 어떻게든 해내야만 한다.","하루 종일 아무것도 먹지 못해서 허기졌다.","비좁은 골목길을 따라 천천히 걸었다.","문득 어릴 적 기억이 떠올랐다.","그는 몹시 지친 얼굴로 돌아왔다.","낯선 도시에서의 첫날밤은 무척 길었다.","나는 그의 말을 곧이곧대로 믿었다.","시간이 흐를수록 그리움이 깊어졌다.","그녀는 담담하게 이별을 받아들였다.","창밖에는 어느덧 어둠이 내려앉았다.","부끄러워서 얼굴이 새빨개졌다.","그 소식을 듣고 가슴이 철렁했다.","그는 늘 남의 눈치를 살피곤 했다.","안개가 자욱하게 낀 새벽길을 걸었다.","이런 일은 다시는 되풀이되지 않아야 한다.","그들은 서로 의지하며 어려움을 헤쳐 나갔다.","책장을 넘길 때마다 종이 냄새가 났다.","지금이라도 늦지 않았으니 다시 시작해 보자.","아이는 졸린 눈을 비비며 일어났다.","한참을 망설이다가 문을 두드렸다.","밤새 내린 눈이 온 세상을 덮었다."]);
+LEVELS.xhard=["이 일을 어떻게 해야 될지 막막했다.","그건 내가 알 바 아니라고 말했다.","문제를 맞혀서 선물을 받았다.","선생님께서 길을 가리키며 설명해 주셨다.","동생에게 한글을 가르쳐 주었다.","병이 다 낫기를 간절히 바랐다.","그는 반드시 돌아오겠다고 약속했다.","자세를 반듯이 하고 앉아라.","문이 저절로 닫혔다.","웬일인지 오늘은 일이 술술 풀렸다.","왠지 모르게 마음이 불안했다.","그는 학생으로서 책임을 다했다.","땀을 흘림으로써 보람을 느꼈다.","어제 감기에 걸려서 하루 종일 누워 있었다.","이번 시험의 합격률은 매우 높았다.","출석률이 눈에 띄게 올랐다.","아침부터 안개가 잔뜩 끼어 있었다.","기름이 옷에 배어서 냄새가 안 빠진다.","잠시 쉬었다 가자꾸나.","다리가 아파서 걸을 수가 없었다.","그 사실을 알고도 모른 척했다.","그는 마음을 졸이며 결과를 기다렸다.","국물이 바짝 졸아들 때까지 끓였다.","부모님께 효도하는 마음을 잊지 않았다.","추위에 몸을 움츠리고 걸었다.","사과를 깎아서 접시에 담았다.","그녀는 머리를 곱게 빗었다.","벽에 못을 박아 액자를 걸었다.","그는 눈물을 삼키며 돌아섰다.","앞으로는 일을 미루지 않기로 다짐했다.","사정을 들어 보니 그럴 만도 했다.","그 아이는 낯가림이 심해서 늘 엄마 뒤에 숨었다.","그가 떠난 지 벌써 한 달이 지났다.","그 일에 관해서는 아무것도 알지 못한다.","열심히 노력한 만큼 좋은 결과가 나왔다.","하늘이 맑을뿐더러 바람도 시원했다.","그는 할 수 없이 약속을 취소했다.","눈이 부시게 아름다운 아침이었다.","마을 어귀에 오래된 느티나무가 서 있다.","엄마는 늘 나를 믿어 주셨다.","그 말을 듣자 얼굴이 홍당무처럼 빨개졌다.","이번 일은 내가 책임질게.","배가 불러서 더는 먹을 수 없었다.","그는 연락도 없이 불쑥 찾아왔다.","저녁 무렵 하늘이 붉게 물들기 시작했다.","어디선가 구수한 된장찌개 냄새가 풍겨 왔다.","비가 그친 뒤라서 공기가 한결 맑았다.","그녀는 몇 번이고 거듭 고개를 숙였다.","오랫동안 품어 온 꿈을 마침내 이루었다.","누구에게나 말 못 할 사연 하나쯤은 있다."];
+var used=[],voiceKind='female',hintTxt='',hinted=true;
+var LABEL={easy:'쉬움',normal:'보통',hard:'어려움',xhard:'매우 어려움'};
+var DESC={easy:'짧고 쉬운 문장 · 45초',normal:'일상 문장 · 35초',hard:'헷갈리는 맞춤법과 복잡한 문장 · 25초',xhard:'매우 복잡한 언어와 까다로운 표현 · 15초'};
+var level='normal',started=false,waitTick=null,waitDeadline=0;
+var WAIT=30000;
+var TIMES={easy:45000,normal:35000,hard:25000,xhard:15000};
+var LIMIT=20000, TOTAL=10;
+var $=function(id){return document.getElementById(id)};
+var qs=[],idx=0,score=0,deadline=0,tick=null,locked=false,nextT=null;
+var hasTTS='speechSynthesis' in window;
+
+function shuffle(a){a=a.slice();for(var i=a.length-1;i>0;i--){var j=Math.floor(Math.random()*(i+1));var t=a[i];a[i]=a[j];a[j]=t}return a}
+function norm(s){return s.replace(/[.,!?]/g,'').replace(/\s+/g,' ').trim()}
+var CH=['g','k','n','d','t','r','m','b','p','s','ss','','j','ch','ch','k','t','p','h'];
+var VO=['ah','eh','yah','yeh','uh','eh','yuh','yeh','oh','wah','weh','weh','yoh','oo','wuh','weh','wee','yoo','uh','ee','ee'];
+var FI=['','k','k','k','n','n','n','t','l','k','m','l','l','l','p','l','m','p','p','t','t','ng','t','t','k','t','p',''];
+var LIA={1:0,2:1,4:2,7:3,8:5,16:6,17:7,19:9,20:10,22:12,23:14,24:15,25:16,26:17};
+function rom(s){
+  return s.split(' ').map(function(w){
+    var syl=[];
+    for(var i=0;i<w.length;i++){
+      var c=w.charCodeAt(i)-44032;
+      if(c<0||c>11171){syl.push({raw:1});continue}
+      syl.push({i:Math.floor(c/588),v:Math.floor(c%588/28),f:c%28});
+    }
+    for(var k=0;k<syl.length-1;k++){
+      var a=syl[k],b=syl[k+1];
+      if(a.raw||b.raw)continue;
+      if(b.i===11&&LIA[a.f]!==undefined){b.i=LIA[a.f];a.f=0}
+    }
+    return syl.map(function(x){return x.raw?'':CH[x.i]+VO[x.v]+FI[x.f]}).filter(function(x){return x}).join(' ');
+  }).join(', ');
+}
+function makeUtt(t){
+  var u=new SpeechSynthesisUtterance(t);u.lang='ko-KR';u.rate=1.0;u.pitch=1;voiceKind='female';
+  var all=speechSynthesis.getVoices();
+  var ko=all.filter(function(v){return /^ko/i.test(v.lang)});
+  var other=all.filter(function(v){return !/^ko/i.test(v.lang)});
+  var fem=/female|yuna|sun-?hi|heami|seoyeon|sora|ji-?min|google|유나|선희|혜미|서연/i;
+  var mal=/(^|[^a-z])male|injoon|in-?joon|minho|hyunsu|gookmin|인준|민호|현수/i;
+  var isM=function(v){return mal.test(v.name)};
+  var isF=function(v){return fem.test(v.name)&&!isM(v)};
+  var femV=ko.find(isF)||ko.find(function(v){return !isM(v)})||ko[0];
+  var malV=ko.find(isM);
+  if(voiceKind==='female'){if(femV)u.voice=femV;u.pitch=1.1}
+  else if(voiceKind==='male'){if(malV){u.voice=malV;u.pitch=0.45}else{if(femV)u.voice=femV;u.pitch=0.25}u.rate=1.0}
+  else if(voiceKind==='child'){var loc=ko.filter(function(v){return v.localService});var cv=loc.find(isF)||loc[0]||femV;if(cv)u.voice=cv;u.pitch=2;u.rate=1.05}
+  else{var en=other.find(function(v){return /^en/i.test(v.lang)});if(en){u.voice=en;u.lang=en.lang;u.text=rom(t);u.pitch=1;u.rate=1.0}else{var alt=ko.find(function(v){return v!==femV})||femV;if(alt)u.voice=alt;u.text=t.split(' ').map(function(w,i,a){return(i%2===1&&i<a.length-1)?w+',':w}).join(' ');u.pitch=0.9;u.rate=1.0}}
+  return u;
+}
+function speak(t){
+  if(!hasTTS)return;
+  try{speechSynthesis.cancel();speechSynthesis.speak(makeUtt(t))}catch(e){}
+}
+function show(id){['start','game','end'].forEach(function(x){$(x).classList.toggle('hide',x!==id)})}
+
+function begin(){
+  LIMIT=TIMES[level];var pl=LEVELS[level].filter(function(s){return used.indexOf(s)<0});if(pl.length<TOTAL){used=[];pl=LEVELS[level].slice()}qs=shuffle(pl).slice(0,TOTAL);used=used.concat(qs);idx=0;score=0;show('game');ask();
+}
+function ask(){
+  locked=false;clearTimeout(nextT);
+  var q=qs[idx];
+  $('qno').textContent=LABEL[level]+' · '+(idx+1)+' / '+TOTAL;
+  $('sc').textContent='점수 '+score;
+  $('ans').value='';$('ans').disabled=false;$('submit').disabled=false;
+  $('fb').textContent='';$('fb').className='fb';
+  $('blanks').textContent=q.split(' ').map(function(w){return '○'.repeat(w.replace(/[.,!?]/g,'').length)}).join('  ');
+  if(level==='hard'||level==='xhard'){hintTxt=$('blanks').textContent;hinted=false;$('blanks').textContent='(5초 남으면 힌트)'}else{hintTxt=$('blanks').textContent;hinted=false;$('blanks').textContent='○'.repeat(q.replace(/[ .,!?]/g,'').length)}
+  $('replay').classList.toggle('hide',!hasTTS);
+  if(hasTTS){$('shown').textContent='';speak(q)}
+  else{$('shown').textContent=q;setTimeout(function(){if(!locked)$('shown').textContent='(문장을 가렸어요)'},3000)}
+  started=false;deadline=Date.now()+LIMIT;clearInterval(waitTick);waitDeadline=Date.now()+WAIT;waitTick=setInterval(waitRender,100);waitRender();
+  clearInterval(tick);
+  render();
+  
+  setTimeout(function(){$('ans').focus()},50);
+}
+function render(){
+  var left=Math.max(0,deadline-Date.now());
+  var sec=Math.ceil(left/1000);
+  $('timer').textContent=sec;
+  $('timer').classList.toggle('low',sec<=5);
+  if(started&&!hinted&&sec<=5){hinted=true;$('blanks').textContent=hintTxt}
+  $('barfill').style.width=(left/LIMIT*100)+'%';
+  $('barfill').classList.toggle('low',sec<=5);
+  if(left<=0&&!locked)finish(false,true);
+}
+function finish(ok,timeout){
+  if(locked)return;locked=true;
+  clearInterval(tick);
+  if(hasTTS)try{speechSynthesis.cancel()}catch(e){}
+  clearInterval(waitTick);$('ans').disabled=true;$('submit').disabled=true;
+  var q=qs[idx];
+  if(ok){score++;$('fb').textContent='정답! 🎉';$('fb').className='fb ok'}
+  else{$('fb').innerHTML=(timeout?'⏰ 시간 초과! ':'오답! ')+'정답: '+q;$('fb').className='fb bad'}
+  $('sc').textContent='점수 '+score;
+  $('shown').textContent=q;
+  nextT=setTimeout(function(){idx++;if(idx>=TOTAL)end();else ask()},1800);
+}
+function check(){
+  if(locked)return;
+  var ua=$('ans').value.trim(),ub=qs[idx];finish(level==='xhard'?ua===ub:norm(ua)===norm(ub),false);
+}
+function end(){
+  show('end');
+  $('final').textContent=score+' / '+TOTAL;
+  $('msg').dataset.lv=LABEL[level];
+  $('msg').textContent=score===TOTAL?'완벽해요! 받아쓰기 달인이에요 🏆':score>=7?'잘했어요! 조금만 더 힘내요 👍':'연습하면 금방 늘어요 💪';
+}
+$('startBtn').onclick=begin;
+$('again').onclick=function(){show('start')};
+document.querySelectorAll('#lv button').forEach(function(b){
+  b.onclick=function(){
+    level=b.dataset.lv;
+    document.querySelectorAll('#lv button').forEach(function(x){x.classList.toggle('on',x===b)});
+    $('lvdesc').textContent=DESC[level];
+  };
+});
+function waitRender(){
+  if(started||locked)return;
+  var left=Math.max(0,waitDeadline-Date.now());
+  $('fb').innerHTML='입력을 시작하면 타이머가 시작돼요<br>대기 '+Math.ceil(left/1000)+'초';
+  if(left<=0)finish(false,true);
+}
+function startTimer(){
+  if(started||locked)return;
+  started=true;clearInterval(waitTick);deadline=Date.now()+LIMIT;$('fb').textContent='';
+  clearInterval(tick);tick=setInterval(render,100);render();
+}
+$('ans').addEventListener('input',startTimer);
+$('submit').onclick=check;
+$('replay').onclick=function(){if(!locked)speak(qs[idx])};
+if(!hasTTS)$('vcbox').classList.add('hide');
+document.querySelectorAll('#vc button').forEach(function(b){
+  b.onclick=function(){
+    voiceKind=b.dataset.v;
+    document.querySelectorAll('#vc button').forEach(function(x){x.classList.toggle('on',x===b)});
+    speak('안녕하세요. 받아쓰기를 시작해요.');
+  };
+});
+$('prev').onclick=function(){speak('안녕하세요. 받아쓰기를 시작해요.')};
+$('ans').addEventListener('keydown',function(e){if(e.key==='Enter')check()});
+</script>
+</body>
+</html>
